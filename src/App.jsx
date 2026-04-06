@@ -73,16 +73,24 @@ export default function App() {
     setMessages(newMsgs);
     setLoading(true);
     try {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
-        method:"POST", headers:{"Content-Type":"application/json"},
+      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method:"POST",
+        headers:{
+          "Content-Type":"application/json",
+          "Authorization":"Bearer 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",
+          "HTTP-Referer":"https://ecr-routing-assistant.vercel.app"
+        },
         body: JSON.stringify({
-          model:"claude-sonnet-4-20250514", max_tokens:800,
-          system: buildContext(),
-          messages: newMsgs.map(m=>({role:m.role,content:m.content}))
+          model:"meta-llama/llama-3.1-8b-instruct:free",
+          max_tokens:800,
+          messages:[
+            {role:"system", content:buildContext()},
+            ...newMsgs.map(m=>({role:m.role, content:m.content}))
+          ]
         })
       });
       const data = await res.json();
-      setMessages(p=>[...p,{role:"assistant",content:data.content?.[0]?.text||"Error."}]);
+      setMessages(p=>[...p,{role:"assistant",content:data.choices?.[0]?.message?.content||"Error."}]);
     } catch { setMessages(p=>[...p,{role:"assistant",content:"Connection error. Please try again."}]); }
     setLoading(false);
   }
@@ -99,13 +107,9 @@ export default function App() {
 
   return (
     <div style={{display:"flex",flexDirection:"column",height:640,fontFamily:"'Segoe UI',Arial,sans-serif",background:"#f5f6f8",borderRadius:8,overflow:"hidden",border:"1px solid #dde2e8"}}>
-
-      {/* Header — BUas style */}
       <div style={{background:"#1C3F6E",padding:"0",display:"flex",flexDirection:"column"}}>
-        {/* Top bar */}
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 20px"}}>
           <div style={{display:"flex",alignItems:"center",gap:14}}>
-            {/* BUas-style logo block */}
             <div style={{display:"flex",alignItems:"center",gap:8}}>
               <div style={{width:34,height:34,background:"#E87722",borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center"}}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="10" rx="2"/><path d="M6 7V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2"/><line x1="12" y1="7" x2="12" y2="17"/><line x1="7" y1="12" x2="17" y2="12"/></svg>
@@ -116,26 +120,16 @@ export default function App() {
               </div>
             </div>
           </div>
-
-          {/* Tabs */}
           <div style={{display:"flex",gap:2}}>
             {[{id:"chat",label:"Routing Chat"},{id:"status",label:"Depot Status"},{id:"map",label:"Network"}].map(t=>(
-              <button key={t.id} onClick={()=>setTab(t.id)} style={{
-                padding:"6px 14px",border:"none",cursor:"pointer",fontSize:12,fontWeight:500,
-                background:tab===t.id?"#E87722":"transparent",
-                color:tab===t.id?"#fff":"rgba(255,255,255,0.65)",
-                borderRadius:4, transition:"all 0.15s"
-              }}>{t.label}</button>
+              <button key={t.id} onClick={()=>setTab(t.id)} style={{padding:"6px 14px",border:"none",cursor:"pointer",fontSize:12,fontWeight:500,background:tab===t.id?"#E87722":"transparent",color:tab===t.id?"#fff":"rgba(255,255,255,0.65)",borderRadius:4}}>{t.label}</button>
             ))}
           </div>
-
           <div style={{display:"flex",alignItems:"center",gap:6}}>
             <div style={{width:7,height:7,borderRadius:"50%",background:"#4ade80"}}/>
             <span style={{fontSize:11,color:"rgba(255,255,255,0.6)"}}>Live data</span>
           </div>
         </div>
-
-        {/* Market ticker */}
         <div style={{background:"rgba(0,0,0,0.2)",padding:"5px 20px",display:"flex",gap:28,overflowX:"auto",borderTop:"1px solid rgba(255,255,255,0.08)"}}>
           {NEWS.map((n,i)=>(
             <div key={i} style={{display:"flex",alignItems:"center",gap:6,whiteSpace:"nowrap"}}>
@@ -146,7 +140,6 @@ export default function App() {
         </div>
       </div>
 
-      {/* CHAT */}
       {tab==="chat" && <>
         <div style={{flex:1,overflowY:"auto",padding:"20px",display:"flex",flexDirection:"column",gap:14,background:"#f5f6f8"}}>
           {messages.map((m,i)=>(
@@ -156,14 +149,7 @@ export default function App() {
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="10" rx="2"/><path d="M6 7V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2"/><line x1="12" y1="7" x2="12" y2="17"/><line x1="7" y1="12" x2="17" y2="12"/></svg>
                 </div>
               )}
-              <div style={{
-                maxWidth:"72%",padding:"12px 16px",borderRadius:8,fontSize:13,lineHeight:1.7,whiteSpace:"pre-wrap",
-                background:m.role==="user"?"#1C3F6E":"#ffffff",
-                color:m.role==="user"?"#fff":"#2d3748",
-                boxShadow:"0 1px 3px rgba(0,0,0,0.08)",
-                borderTopLeftRadius:m.role==="assistant"?2:8,
-                borderTopRightRadius:m.role==="user"?2:8,
-              }}>{m.content}</div>
+              <div style={{maxWidth:"72%",padding:"12px 16px",borderRadius:8,fontSize:13,lineHeight:1.7,whiteSpace:"pre-wrap",background:m.role==="user"?"#1C3F6E":"#ffffff",color:m.role==="user"?"#fff":"#2d3748",boxShadow:"0 1px 3px rgba(0,0,0,0.08)",borderTopLeftRadius:m.role==="assistant"?2:8,borderTopRightRadius:m.role==="user"?2:8}}>{m.content}</div>
               {m.role==="user" && (
                 <div style={{width:34,height:34,borderRadius:6,background:"#E87722",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:2,fontSize:14}}>👤</div>
               )}
@@ -172,8 +158,8 @@ export default function App() {
           {loading && (
             <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
               <div style={{width:34,height:34,borderRadius:6,background:"#E87722",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="10" rx="2"/><path d="M6 7V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2"/><line x1="12" y1="7" x2="12" y2="17"/><line x1="7" y1="12" x2="17" y2="12"/></svg>
-                </div>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="10" rx="2"/><path d="M6 7V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2"/><line x1="12" y1="7" x2="12" y2="17"/><line x1="7" y1="12" x2="17" y2="12"/></svg>
+              </div>
               <div style={{padding:"12px 16px",borderRadius:8,background:"#fff",boxShadow:"0 1px 3px rgba(0,0,0,0.08)",display:"flex",gap:5,alignItems:"center"}}>
                 {[0,1,2].map(i=><div key={i} style={{width:7,height:7,borderRadius:"50%",background:"#1C3F6E",opacity:0.4,animation:`pulse 1s ${i*0.25}s infinite`}}/>)}
               </div>
@@ -181,32 +167,19 @@ export default function App() {
           )}
           <div ref={bottomRef}/>
         </div>
-
-        {/* Suggestions */}
         <div style={{padding:"8px 16px",background:"#fff",borderTop:"1px solid #e2e8f0",display:"flex",gap:6,flexWrap:"wrap"}}>
           {SUGGESTIONS.map((s,i)=>(
-            <button key={i} onClick={()=>send(s)} style={{
-              fontSize:11,padding:"4px 12px",borderRadius:20,
-              border:"1px solid #1C3F6E",background:"transparent",
-              color:"#1C3F6E",cursor:"pointer",fontWeight:500
-            }}>{s}</button>
+            <button key={i} onClick={()=>send(s)} style={{fontSize:11,padding:"4px 12px",borderRadius:20,border:"1px solid #1C3F6E",background:"transparent",color:"#1C3F6E",cursor:"pointer",fontWeight:500}}>{s}</button>
           ))}
         </div>
-
-        {/* Input */}
         <div style={{padding:"12px 16px",background:"#fff",borderTop:"1px solid #e2e8f0",display:"flex",gap:8}}>
           <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()}
             placeholder="Ask about container routing, depot status, or market conditions..."
             style={{flex:1,padding:"10px 14px",borderRadius:6,fontSize:13,border:"1px solid #cbd5e0",background:"#f8fafc",color:"#2d3748",outline:"none"}}/>
-          <button onClick={()=>send()} disabled={loading||!input.trim()} style={{
-            padding:"10px 20px",borderRadius:6,border:"none",
-            background:loading?"#cbd5e0":"#E87722",
-            color:"#fff",fontSize:13,cursor:loading?"not-allowed":"pointer",fontWeight:600
-          }}>Send</button>
+          <button onClick={()=>send()} disabled={loading||!input.trim()} style={{padding:"10px 20px",borderRadius:6,border:"none",background:loading?"#cbd5e0":"#E87722",color:"#fff",fontSize:13,cursor:loading?"not-allowed":"pointer",fontWeight:600}}>Send</button>
         </div>
       </>}
 
-      {/* STATUS */}
       {tab==="status" && (
         <div style={{flex:1,overflowY:"auto",padding:20,display:"flex",gap:16,background:"#f5f6f8"}}>
           <div style={{flex:1}}>
@@ -236,7 +209,6 @@ export default function App() {
         </div>
       )}
 
-      {/* MAP */}
       {tab==="map" && (
         <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:20,background:"#f5f6f8"}}>
           <div style={{fontSize:11,fontWeight:700,color:"#1C3F6E",textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:12}}>Rotterdam–Antwerp–Moerdijk Corridor</div>
@@ -268,4 +240,3 @@ export default function App() {
     </div>
   );
 }
-
