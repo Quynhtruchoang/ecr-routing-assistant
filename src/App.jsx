@@ -89,8 +89,9 @@ export default function App() {
           ]
         })
       });
-      const data = await res.json();
-      setMessages(p=>[...p,{role:"assistant",content:data.choices?.[0]?.message?.content||"Error."}]);
+const data = await res.json();
+      const reply = data.choices?.[0]?.message?.content || data.error?.message || JSON.stringify(data);
+      setMessages(p=>[...p,{role:"assistant",content:reply}]);
     } catch { setMessages(p=>[...p,{role:"assistant",content:"Connection error. Please try again."}]); }
     setLoading(false);
   }
